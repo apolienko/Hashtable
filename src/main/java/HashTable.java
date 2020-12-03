@@ -3,19 +3,19 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class HashTable<K, V> implements Map {
+public class HashTable<K, V> implements Map<K, V> {
 
     private final int HASH_CONST = 47;
 
     private int size = 0;
     private int capacity = 16;
-    private boolean[] deletedCells;
+    private boolean[] existedCells;
     private double loadFactor = 0.75;
     private Cell<K, V>[] table;
 
     public HashTable() {
         table = new Cell[capacity];
-        deletedCells = new boolean[capacity];
+        existedCells = new boolean[capacity];
     }
 
     public HashTable(int capacity) {
@@ -25,7 +25,7 @@ public class HashTable<K, V> implements Map {
             throw new IllegalArgumentException("Illegal Capacity: "+ capacity);
         }
         table = new Cell[capacity];
-        deletedCells = new boolean[capacity];
+        existedCells = new boolean[capacity];
     }
 
     @Override
@@ -36,6 +36,26 @@ public class HashTable<K, V> implements Map {
     @Override
     public boolean isEmpty() {
         return size == 0;
+    }
+
+
+    public int contains(Object key) {
+        int hash1 = hash1(key);
+        int hash2 = hash2(key);
+        int n = -1;
+        while (n != capacity - 1) {
+            n++;
+            int index = (hash1 + n * hash2) % (capacity - 1);
+            Map.Entry<K, V> node = table[index];
+            if (node != null && node.getKey().equals(key)) {
+                if (!existedCells[index]) {
+                    return -1;
+                } else {
+                    return index;
+                }
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -52,7 +72,7 @@ public class HashTable<K, V> implements Map {
             throw new NullPointerException();
         }
         for (int i = 0; i < capacity; i++) {
-            if ((deletedCells[i]) && (value.equals(table[i].getValue()))) {
+            if ((existedCells[i]) && (value.equals(table[i].getValue()))) {
                 return true;
             }
         }
@@ -68,11 +88,31 @@ public class HashTable<K, V> implements Map {
         return table[index].getValue();
     }
 
-    public Object put(Object key, Object value) {
-        return null;
+    @Override
+    public V put(K key, V value) {
+        if (value == null) {
+            throw new NullPointerException();
+        }
+
+        if (contains(key) >= 0) {
+            return null;
+        }
+
+        size++;
+        double newLoadFactor = (double) size / capacity;
+        if (newLoadFactor >= loadFactor) {
+            rehash();
+        }
+
+        int index = findIndex(key);
+        table[index] =  new Cell(key, value);
+        existedCells[index] = true;
+
+        return value;
     }
 
-    public Object remove(Object key) {
+
+    public V remove(Object key) {
         return null;
     }
 
@@ -92,7 +132,7 @@ public class HashTable<K, V> implements Map {
         return null;
     }
 
-    public Set<Entry> entrySet() {
+    public Set<Entry<K, V>> entrySet() {
         return null;
     }
 
@@ -152,25 +192,6 @@ public class HashTable<K, V> implements Map {
         return hash;
     }
 
-    private int contains(Object key) {
-        int hash1 = hash1(key);
-        int hash2 = hash2(key);
-        int n = -1;
-        while (n != capacity - 1) {
-            n++;
-            int index = (hash1 + n * hash2) % (capacity - 1);
-            Map.Entry<K, V> node = table[index];
-            if (node != null && node.getKey().equals(key)) {
-                if (!deletedCells[index]) {
-                    return -1;
-                } else {
-                    return index;
-                }
-            }
-        }
-        return -1;
-    }
-
     private void rehash() {
         int oldCapacity = capacity;
         capacity = capacity * 2 + 1;
@@ -178,17 +199,25 @@ public class HashTable<K, V> implements Map {
 
         Cell<K, V>[] subTable = Arrays.copyOf(table, oldCapacity);
         table = new Cell[capacity];
-        deletedCells = new boolean[capacity];
+        existedCells = new boolean[capacity];
+
         for (int i = 0; i < oldCapacity; i++) {
             if (subTable[i] != null) {
                 int index = findIndex(subTable[i].getKey());
                 table[index] = subTable[i];
-                deletedCells[index] = true;
+                existedCells[index] = true;
             }
         }
     }
 
     private int findIndex(K key) {
-
+        int n = -1;
+        while (true) {
+            n++;
+            int index = (hash1(key) + n * hash2(key)) % (capacity - 1);
+            if (!existedCells[index]) {
+                return index;
+            }
+        }
     }
 }

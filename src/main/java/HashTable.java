@@ -3,50 +3,39 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class HashTable implements Map {
+public class HashTable<K, V> implements Map {
 
     private final int HASH_CONST = 47;
+
     private int size = 0;
-    private int bufferSize = 10;
-    private Cell[] hashTable;
+    private int capacity = 16;
     private boolean[] deletedCells;
+    private double loadFactor = 0.75;
+    private Cell<K, V>[] table;
 
     public HashTable() {
-        hashTable = new Cell[bufferSize];
-        deletedCells = new boolean[bufferSize];
+        table = new Cell[capacity];
+        deletedCells = new boolean[capacity];
     }
 
-    public HashTable(int bufferSize) {
-        this.bufferSize = bufferSize;
-        hashTable = new Cell[bufferSize];
-        deletedCells = new boolean[bufferSize];
+    public HashTable(int capacity) {
+        if (capacity >= 0) {
+            this.capacity = capacity;
+        } else {
+            throw new IllegalArgumentException("Illegal Capacity: "+ capacity);
+        }
+        table = new Cell[capacity];
+        deletedCells = new boolean[capacity];
     }
 
+    @Override
     public int size() {
         return size;
     }
 
+    @Override
     public boolean isEmpty() {
         return size == 0;
-    }
-
-    private boolean contains(Object key) {
-        int hash1 = hash1(key);
-        int hash2 = hash2(key);
-        int n = -1;
-        while (n != bufferSize - 1) {
-            n++;
-            int index = (hash1 + n * hash2) % (bufferSize - 1);
-            Cell cell = hashTable[index];
-            if (cell != null && cell.getKey().equals(key)) {
-                if (!deletedCells[index]) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -54,7 +43,7 @@ public class HashTable implements Map {
         if (key == null) {
             throw new NullPointerException();
         }
-        return contains(key);
+        return contains(key) >= 0;
     }
 
     @Override
@@ -62,19 +51,21 @@ public class HashTable implements Map {
         if (value == null) {
             throw new NullPointerException();
         }
-        for (int i = 0; i < bufferSize; i++) {
-            if (deletedCells[i]) {
-                if (value.equals(hashTable[i].getValue())) {
-                    return true;
-                }
+        for (int i = 0; i < capacity; i++) {
+            if ((deletedCells[i]) && (value.equals(table[i].getValue()))) {
+                return true;
             }
         }
         return false;
     }
 
     @Override
-    public Object get(Object key) {
-        return null;
+    public V get(Object key) {
+        int index = contains(key);
+        if (index < 0) {
+            return null;
+        }
+        return table[index].getValue();
     }
 
     public Object put(Object key, Object value) {
@@ -150,14 +141,54 @@ public class HashTable implements Map {
     }
 
     private int hash1(Object key) {
-        return (key.hashCode() * HASH_CONST)  % bufferSize;
+        return (key.hashCode() * HASH_CONST) % capacity;
     }
 
     private int hash2(Object key) {
-        int hash = (key.hashCode() * HASH_CONST) % (bufferSize - 1);
+        int hash = (key.hashCode() * HASH_CONST) % (capacity - 1);
         if (hash % 2 == 0) {
             ++hash;
         }
         return hash;
+    }
+
+    private int contains(Object key) {
+        int hash1 = hash1(key);
+        int hash2 = hash2(key);
+        int n = -1;
+        while (n != capacity - 1) {
+            n++;
+            int index = (hash1 + n * hash2) % (capacity - 1);
+            Map.Entry<K, V> node = table[index];
+            if (node != null && node.getKey().equals(key)) {
+                if (!deletedCells[index]) {
+                    return -1;
+                } else {
+                    return index;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void rehash() {
+        int oldCapacity = capacity;
+        capacity = capacity * 2 + 1;
+        loadFactor += (1 - loadFactor) / 2;
+
+        Cell<K, V>[] subTable = Arrays.copyOf(table, oldCapacity);
+        table = new Cell[capacity];
+        deletedCells = new boolean[capacity];
+        for (int i = 0; i < oldCapacity; i++) {
+            if (subTable[i] != null) {
+                int index = findIndex(subTable[i].getKey());
+                table[index] = subTable[i];
+                deletedCells[index] = true;
+            }
+        }
+    }
+
+    private int findIndex(K key) {
+
     }
 }

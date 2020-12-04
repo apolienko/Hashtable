@@ -46,13 +46,9 @@ public class HashTable<K, V> implements Map<K, V> {
         while (n != capacity - 1) {
             n++;
             int index = (hash1 + n * hash2) % (capacity - 1);
-            Map.Entry<K, V> node = table[index];
-            if (node != null && node.getKey().equals(key)) {
-                if (!existedCells[index]) {
-                    return -1;
-                } else {
-                    return index;
-                }
+            Map.Entry<K, V> cell = table[index];
+            if (cell != null && cell.getKey().equals(key) && existedCells[index]) {
+                return index;
             }
         }
         return -1;
@@ -112,16 +108,31 @@ public class HashTable<K, V> implements Map<K, V> {
     }
 
 
+    @Override
     public V remove(Object key) {
-        return null;
+        int index = contains(key);
+        if (index < 0) {
+            return null;
+        }
+        size--;
+        table[index] = null;
+        return table[index].getValue();
     }
 
-    public void putAll(Map m) {
-
+    @Override
+    public void putAll(Map<? extends K, ? extends V> map) {
+        for (Map.Entry<? extends K, ? extends V> elem : map.entrySet()) {
+            put(elem.getKey(), elem.getValue());
+        }
     }
 
+    @Override
     public void clear() {
-
+        for (int i = 0; i < capacity; i++) {
+            table[i] = null;
+        }
+        size = 0;
+        existedCells = new boolean[capacity];
     }
 
     public Set keySet() {
@@ -136,8 +147,14 @@ public class HashTable<K, V> implements Map<K, V> {
         return null;
     }
 
-    public Object getOrDefault(Object key, Object defaultValue) {
-        return null;
+    @Override
+    public V getOrDefault(Object key, V defaultValue) {
+        int index = contains(key);
+        if (index >= 0) {
+            return table[index].getValue();
+        } else {
+            return defaultValue;
+        }
     }
 
     public void forEach(BiConsumer action) {
@@ -148,20 +165,46 @@ public class HashTable<K, V> implements Map<K, V> {
 
     }
 
-    public Object putIfAbsent(Object key, Object value) {
-        return null;
+    @Override
+    public V putIfAbsent(K key, V value) {
+        int index = contains(key);
+        if (index >= 0) {
+            return table[index].getValue();
+        } else {
+            return put(key, value);
+        }
     }
 
+    @Override
     public boolean remove(Object key, Object value) {
-        return false;
+        V curValue = get(key);
+        if (!Objects.equals(curValue, value) ||
+                (curValue == null && !containsKey(key))) {
+            return false;
+        }
+        remove(key);
+        return true;
     }
 
-    public boolean replace(Object key, Object oldValue, Object newValue) {
-        return false;
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+        int index = contains(key);
+        if (index < 0 || !table[index].getValue().equals(oldValue)) {
+            return false;
+        }
+        table[index].setValue(newValue);
+        return true;
     }
 
-    public Object replace(Object key, Object value) {
-        return null;
+    @Override
+    public V replace(K key, V value) {
+        int index = contains(key);
+        if (index < 0) {
+            return null;
+        }
+        V old = table[index].getValue();
+        table[index].setValue(value);
+        return old;
     }
 
     public Object computeIfAbsent(Object key, Function mappingFunction) {

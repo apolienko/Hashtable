@@ -11,7 +11,7 @@ public class HashTable<K, V> implements Map<K, V> {
     private int capacity = 16;
     private boolean[] existedCells;
     private double loadFactor = 0.75;
-    private Cell<K, V>[] table;
+    private Cell<K,V>[] table;
 
     public HashTable() {
         table = new Cell[capacity];
@@ -46,7 +46,7 @@ public class HashTable<K, V> implements Map<K, V> {
         while (n != capacity - 1) {
             n++;
             int index = (hash1 + n * hash2) % (capacity - 1);
-            Map.Entry<K, V> cell = table[index];
+            Cell<K, V> cell = table[index];
             if (cell != null && cell.getKey().equals(key) && existedCells[index]) {
                 return index;
             }
@@ -101,7 +101,7 @@ public class HashTable<K, V> implements Map<K, V> {
         }
 
         int index = findIndex(key);
-        table[index] =  new Cell(key, value);
+        table[index] =  new Cell<>(key, value);
         existedCells[index] = true;
 
         return value;
@@ -135,16 +135,110 @@ public class HashTable<K, V> implements Map<K, V> {
         existedCells = new boolean[capacity];
     }
 
-    public Set keySet() {
-        return null;
+    private  Set<K> keySet;
+    private  Set<Map.Entry<K,V>> entrySet;
+    private  Collection<V> values;
+
+    private static final int KEYS = 0;
+    private static final int VALUES = 1;
+    private static final int ENTRIES = 2;
+
+    @Override
+    public Set<K> keySet() {
+        if (keySet == null) {
+            keySet = new KeySet();
+        }
+        return keySet;
     }
 
-    public Collection values() {
-        return null;
+    private class KeySet extends AbstractSet<K> {
+        public Iterator<K> iterator() {
+            return getIterator(KEYS);
+        }
+
+        public int size() {
+            return size;
+        }
+
+        public boolean contains(Object o) {
+            return containsKey(o);
+        }
+
+        public boolean remove(Object o) {
+            return HashTable.this.remove(o) != null;
+        }
+
+        public void clear() {
+            HashTable.this.clear();
+        }
     }
 
-    public Set<Entry<K, V>> entrySet() {
-        return null;
+    @Override
+    public Collection<V> values() {
+        if (values == null) {
+            values = new ValueCollection();
+        }
+        return values;
+    }
+
+    private class ValueCollection extends AbstractCollection<V> {
+        public Iterator<V> iterator() {
+            return getIterator(VALUES);
+        }
+
+        public int size() {
+            return size;
+        }
+
+        public boolean contains(Object o) {
+            return containsValue(o);
+        }
+
+        public void clear() {
+            HashTable.this.clear();
+        }
+    }
+
+    @Override
+    public Set<Map.Entry<K, V>> entrySet() {
+        return entrySet;
+    }
+
+    class EntrySet extends AbstractSet<Map.Entry<K, V>> {
+        public Iterator<Entry<K, V>> iterator() {
+            return getIterator(ENTRIES);
+        }
+
+        public boolean add(Map.Entry<K, V> o) {
+            return super.add(o);
+        }
+
+        public boolean contains(Object o) {
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
+            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+            Object key = entry.getKey();
+            return HashTable.this.containsKey(key);
+        }
+
+        public boolean remove(Object o) {
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
+            Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+            Object key = entry.getKey();
+            return HashTable.this.remove(key) != null;
+        }
+
+        public void clear() {
+            HashTable.this.clear();
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
     }
 
     @Override
@@ -263,4 +357,45 @@ public class HashTable<K, V> implements Map<K, V> {
             }
         }
     }
+
+    private <T> java.util.Iterator<T> getIterator(int type) {
+        if (size == 0) {
+            return Collections.emptyIterator();
+        } else {
+            return new HashIterator<T>(type);
+        }
+    }
+
+    class HashIterator<T> implements Iterator<T> {
+        boolean[] iterExistedCells = existedCells;
+        int index = -1;
+        int count = 0;
+        int iterSize = size;
+        int type;
+
+        HashIterator(int type) {
+            this.type = type;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return count < iterSize;
+        }
+
+        @Override
+        public T next() {
+            index++;
+            while (index < capacity) {
+                if (iterExistedCells[index]) {
+                    Cell<K,V> cell = table[index];
+                    count++;
+                    return type == KEYS ? (T) cell.getKey() : (type == VALUES ? (T) cell.getValue() : (T) cell);
+                } else {
+                    index++;
+                }
+            }
+            return null;
+        }
+    }
+
 }

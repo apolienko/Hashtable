@@ -201,6 +201,9 @@ public class HashTable<K, V> implements Map<K, V> {
 
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
+        if (entrySet == null) {
+            entrySet = new EntrySet();
+        }
         return entrySet;
     }
 
@@ -251,12 +254,30 @@ public class HashTable<K, V> implements Map<K, V> {
         }
     }
 
-    public void forEach(BiConsumer action) {
+    @Override
+    public void forEach(BiConsumer<? super K, ? super V> action) {
+        Objects.requireNonNull(action);
 
+        if (entrySet == null) {
+            entrySet = entrySet();
+        }
+
+        for (Entry<K, V> cell : entrySet) {
+            action.accept(cell.getKey(), cell.getValue());
+        }
     }
 
-    public void replaceAll(BiFunction function) {
+    @Override
+    public synchronized void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+        Objects.requireNonNull(function);
 
+        if (entrySet == null) {
+            entrySet = entrySet();
+        }
+
+        for (Entry<K, V> cell : entrySet) {
+            cell.setValue(function.apply(cell.getKey(), cell.getValue()));
+        }
     }
 
     @Override
@@ -301,11 +322,37 @@ public class HashTable<K, V> implements Map<K, V> {
         return old;
     }
 
-    public Object computeIfAbsent(Object key, Function mappingFunction) {
-        return null;
+    @Override
+    public synchronized V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+        Objects.requireNonNull(mappingFunction);
+
+        int index = contains(key);
+        if (index >= 0) {
+            return table[index].getValue();
+        } else {
+            V newValue = mappingFunction.apply(key);
+            HashTable.this.put(key, newValue);
+            return newValue;
+        }
     }
 
-    public Object computeIfPresent(Object key, BiFunction remappingFunction) {
+    @Override
+    public synchronized V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        Objects.requireNonNull(remappingFunction);
+
+        int index = contains(key);
+        if (index >= 0) {
+            Cell<K,V> cell = table[index];
+            V newValue = remappingFunction.apply(key, cell.getValue());
+
+            if (newValue == null) {
+                throw new NullPointerException("newValue is null");
+            }
+
+            cell.setValue(newValue);
+            return newValue;
+        }
+
         return null;
     }
 

@@ -483,7 +483,6 @@ public class HashTable<K, V> implements Map<K, V> {
     private void rehash() {
         int oldCapacity = capacity;
         capacity = capacity * 2 + 1;
-        loadFactor += (1 - loadFactor) / 2;
 
         Cell<K, V>[] subTable = Arrays.copyOf(table, oldCapacity);
         table = new Cell[capacity];

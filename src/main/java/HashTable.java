@@ -10,22 +10,35 @@ public class HashTable<K, V> implements Map<K, V> {
     private int size = 0;
     private int capacity = 16;
     private boolean[] deletedCells;
-    private double loadFactor = 0.75;
+    private float loadFactor = 0.75f;
     private Cell<K,V>[] table;
 
-    public HashTable() {
+
+    public HashTable(int capacity, float loadFactor) {
+        if (capacity < 0) {
+            throw new IllegalArgumentException(
+                    "Illegal Capacity: " + capacity
+            );
+        }
+
+        if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
+            throw new IllegalArgumentException("Illegal Load: " + loadFactor);
+        }
+
+        if (capacity==0) {
+            capacity = 1;
+        }
+
+        this.loadFactor = loadFactor;
         table = new Cell[capacity];
-        deletedCells = new boolean[capacity];
     }
 
     public HashTable(int capacity) {
-        if (capacity > 0 && capacity < 100) {
-            this.capacity = capacity;
-        } else {
-            throw new IllegalArgumentException("Illegal Capacity: "+ capacity);
-        }
-        table = new Cell[capacity];
-        deletedCells = new boolean[capacity];
+        this(capacity, 0.75f);
+    }
+
+    public HashTable() {
+        this(16, 0.75f);
     }
 
     @Override
@@ -290,6 +303,11 @@ public class HashTable<K, V> implements Map<K, V> {
             hash += entry.hashCode();
         }
         return hash;
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(table);
     }
 
     @Override

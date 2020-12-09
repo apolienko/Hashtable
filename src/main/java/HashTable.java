@@ -61,9 +61,6 @@ public class HashTable<K, V> implements Map<K, V> {
 
     @Override
     public boolean containsKey(Object key) {
-        if (key == null) {
-            throw new NullPointerException();
-        }
         return contains(key) >= 0;
     }
 
@@ -73,10 +70,8 @@ public class HashTable<K, V> implements Map<K, V> {
             throw new NullPointerException();
         }
         for (int i = 0; i < capacity; i++) {
-            if (!deletedCells[i]) {
-                if (value.equals(table[i].getValue())) {
-                    return true;
-                }
+            if (!deletedCells[i] && value.equals(table[i].getValue())) {
+                return true;
             }
         }
         return false;
@@ -110,11 +105,12 @@ public class HashTable<K, V> implements Map<K, V> {
             rehash();
         }
 
-        int index = findIndex(key);
+        int index = findEmptyIndex(key);
         Cell<K,V> newCell = new Cell<>(key, value);
         table[index] = newCell;
 
-        return value;
+//      Returns null if there was no mapping for key before
+        return null;
     }
 
 
@@ -129,7 +125,6 @@ public class HashTable<K, V> implements Map<K, V> {
         V deletedValue = table[index].getValue();
 
         size--;
-        table[index] = null;
         deletedCells[index] = true;
         return deletedValue;
     }
@@ -260,6 +255,44 @@ public class HashTable<K, V> implements Map<K, V> {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof Map)) {
+            return false;
+        }
+
+        Map<?,?> t = (Map<?,?>) o;
+        if (t.size() != size())
+            return false;
+
+        try {
+            for (Map.Entry<K, V> e : entrySet()) {
+                K key = e.getKey();
+                V value = e.getValue();
+                if (!value.equals(t.get(key))) {
+                    return false;
+                }
+            }
+        } catch (ClassCastException | NullPointerException ex)   {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        for (Entry<K, V> entry : entrySet) {
+            hash += entry.hashCode();
+        }
+        return hash;
+    }
+
+    @Override
     public V getOrDefault(Object key, V defaultValue) {
         int index = contains(key);
         if (index >= 0) {
@@ -277,8 +310,13 @@ public class HashTable<K, V> implements Map<K, V> {
             entrySet = entrySet();
         }
 
+        int size = entrySet.size();
+
         for (Entry<K, V> cell : entrySet) {
             action.accept(cell.getKey(), cell.getValue());
+            if (entrySet.size() != size) {
+                throw new ConcurrentModificationException();
+            }
         }
     }
 
@@ -290,10 +328,15 @@ public class HashTable<K, V> implements Map<K, V> {
             entrySet = entrySet();
         }
 
+        int size = entrySet.size();
+
         for (Entry<K, V> cell : entrySet) {
             Objects.requireNonNull(
                     cell.setValue(function.apply(cell.getKey(), cell.getValue()))
             );
+            if (entrySet.size() != size) {
+                throw new ConcurrentModificationException();
+            }
         }
     }
 
@@ -310,20 +353,24 @@ public class HashTable<K, V> implements Map<K, V> {
     @Override
     public boolean remove(Object key, Object value) {
         V curValue = get(key);
-        if (!Objects.equals(curValue, value) ||
-                (curValue == null && !containsKey(key))) {
+
+        if (!Objects.equals(curValue, value)) {
             return false;
         }
+
         remove(key);
         return true;
     }
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
+        if (oldValue == null) throw new NullPointerException();
+
         int index = contains(key);
         if (index < 0 || !table[index].getValue().equals(oldValue)) {
             return false;
         }
+
         table[index].setValue(newValue);
         return true;
     }
@@ -334,6 +381,7 @@ public class HashTable<K, V> implements Map<K, V> {
         if (index < 0) {
             return null;
         }
+
         V old = table[index].getValue();
         table[index].setValue(value);
         return old;
@@ -350,10 +398,10 @@ public class HashTable<K, V> implements Map<K, V> {
             V newValue = mappingFunction.apply(key);
 
             if (newValue == null) {
-                throw new NullPointerException("newValue is null");
+                throw new NullPointerException("Computed value is null");
             }
 
-            HashTable.this.put(key, newValue);
+            put(key, newValue);
             return newValue;
         }
     }
@@ -368,7 +416,7 @@ public class HashTable<K, V> implements Map<K, V> {
             V newValue = remappingFunction.apply(key, cell.getValue());
 
             if (newValue == null) {
-                throw new NullPointerException("newValue is null");
+                throw new NullPointerException("Computed value is null");
             }
 
             cell.setValue(newValue);
@@ -443,13 +491,13 @@ public class HashTable<K, V> implements Map<K, V> {
 
         for (int i = 0; i < oldCapacity; i++) {
             if (subTable[i] != null) {
-                int index = findIndex(subTable[i].getKey());
+                int index = findEmptyIndex(subTable[i].getKey());
                 table[index] = subTable[i];
             }
         }
     }
 
-    private int findIndex(K key) {
+    private int findEmptyIndex(K key) {
         int n = -1;
         while (true) {
             n++;

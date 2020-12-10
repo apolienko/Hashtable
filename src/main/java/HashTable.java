@@ -31,6 +31,7 @@ public class HashTable<K, V> implements Map<K, V> {
 
         this.loadFactor = loadFactor;
         table = new Cell[capacity];
+        deletedCells = new boolean[capacity];
     }
 
     public HashTable(int capacity) {
@@ -51,27 +52,6 @@ public class HashTable<K, V> implements Map<K, V> {
         return size == 0;
     }
 
-
-    public int contains(Object key) {
-        if (key == null) throw new NullPointerException();
-        int hash1 = hash1(key);
-        int hash2 = hash2(key);
-        int n = -1;
-        while (n != capacity - 1) {
-            n++;
-            int index = (hash1 + n * hash2) % (capacity - 1);
-            Cell<K, V> cell = table[index];
-            if (cell != null && cell.getKey().equals(key)) {
-                if (deletedCells[index]) {
-                    return -1;
-                } else {
-                    return index;
-                }
-            }
-        }
-        return -1;
-    }
-
     @Override
     public boolean containsKey(Object key) {
         return contains(key) >= 0;
@@ -80,11 +60,14 @@ public class HashTable<K, V> implements Map<K, V> {
     @Override
     public boolean containsValue(Object value) {
         if (value == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("HashTable does not permit null values");
         }
+
         for (int i = 0; i < capacity; i++) {
-            if (!deletedCells[i] && value.equals(table[i].getValue())) {
-                return true;
+            if (!deletedCells[i] && table[i] != null) {
+                if (value.equals(table[i].getValue())) {
+                    return true;
+                }
             }
         }
         return false;
@@ -518,7 +501,7 @@ public class HashTable<K, V> implements Map<K, V> {
         int n = -1;
         while (true) {
             n++;
-            int index = (hash1(key) + n * hash2(key)) % (capacity - 1);
+            int index = (hash1(key) + n * hash2(key)) % (capacity - 3);
             if (table[index] == null) {
                 return index;
             } else if (deletedCells[index]){
@@ -526,6 +509,26 @@ public class HashTable<K, V> implements Map<K, V> {
                 return  index;
             }
         }
+    }
+
+    private int contains(Object key) {
+        if (key == null) throw new NullPointerException("HashTable does not permit null keys");
+        int hash1 = hash1(key);
+        int hash2 = hash2(key);
+        int n = -1;
+        while (n != capacity - 1) {
+            n++;
+            int index = (hash1 + n * hash2) % (capacity - 3);
+            Cell<K, V> cell = table[index];
+            if (cell != null && cell.getKey().equals(key)) {
+                if (deletedCells[index]) {
+                    return -1;
+                } else {
+                    return index;
+                }
+            }
+        }
+        return -1;
     }
 
     private <T> Iterator<T> getIterator(int type) {

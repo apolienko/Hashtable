@@ -141,9 +141,9 @@ public class HashTable<K, V> implements Map<K, V> {
         deletedCells = new boolean[capacity];
     }
 
-    private  Set<K> keySet;
-    private  Set<Map.Entry<K,V>> entrySet;
-    private  Collection<V> values;
+    private Set<K> keySet;
+    private Set<Map.Entry<K,V>> entrySet;
+    private Collection<V> values;
 
     private static final int KEYS = 0;
     private static final int VALUES = 1;
@@ -540,7 +540,7 @@ public class HashTable<K, V> implements Map<K, V> {
     }
 
     class HashIterator<T> implements Iterator<T> {
-        boolean[] iterExistedCells = deletedCells;
+        boolean[] iterDeletedCells = deletedCells;
         int index = -1;
         int count = 0;
         int iterSize = size;
@@ -559,8 +559,8 @@ public class HashTable<K, V> implements Map<K, V> {
         public T next() {
             index++;
             while (index < capacity) {
-                if (iterExistedCells[index]) {
-                    Cell<K,V> cell = table[index];
+                Cell<K,V> cell = table[index];
+                if (!iterDeletedCells[index] && cell != null) {
                     count++;
                     return type == KEYS ? (T) cell.getKey() : (type == VALUES ? (T) cell.getValue() : (T) cell);
                 } else {
@@ -613,10 +613,8 @@ public class HashTable<K, V> implements Map<K, V> {
 
         @Override
         public String toString() {
-            return "Cell{" +
-                    "key=" + key +
-                    ", value=" + value +
-                    '}';
+            return key +
+                    "=" + value;
         }
     }
 

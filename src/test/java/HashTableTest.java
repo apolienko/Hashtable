@@ -1,8 +1,9 @@
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HashTableTest {
 
@@ -78,6 +79,8 @@ class HashTableTest {
         assertTrue(table.containsValue(160));
         assertTrue(table.containsKey("GG"));
 
+        assertEquals(table.size(), 6);
+
         assertThrows(NullPointerException.class, () ->
                 table.put(null, 1));
         assertThrows(NullPointerException.class, () ->
@@ -86,10 +89,39 @@ class HashTableTest {
 
     @Test
     void remove() {
+        setTable(table);
+
+        assertNull(table.remove("GG"));
+        assertNull(table.remove("Y"));
+
+        assertEquals(10, table.remove("A")); // Возращает value, которому соответствовал key
+        assertEquals(20, table.remove("B"));
+
+        assertEquals(table.size(), 3);
     }
 
     @Test
     void putAll() {
+        setTable(table);
+
+        Map<String, Integer> table2 = new HashMap<>();
+        table2.put("a", 1);
+        table2.put("b", 2);
+        table2.put("c", 3);
+
+        table.putAll(table2);
+        assertTrue(table.containsValue(1));
+        assertTrue(table.containsKey("a"));
+        assertTrue(table.containsValue(2));
+        assertTrue(table.containsKey("b"));
+        assertTrue(table.containsValue(3));
+        assertTrue(table.containsKey("c"));
+
+        table2.put(null, null);
+        assertThrows(NullPointerException.class, () ->
+                table.putAll(table2));
+
+
     }
 
     @Test
@@ -101,30 +133,55 @@ class HashTableTest {
 
     @Test
     void keySet() {
+        Map<String, Integer> table2 = new HashMap<>();
+
+        setTable(table);
+        setTable(table2);
+        assertEquals(table.keySet(), table2.keySet());
+
+        table.remove("A");
+        assertNotEquals(table.keySet(), table2.keySet());
+
+        table.clear();
+        assertTrue(table.keySet().isEmpty());
     }
 
     @Test
     void values() {
+        Map<String, Integer> table2 = new HashMap<>();
+
+        setTable(table);
+        setTable(table2);
+
+        assertEquals(table.values().size(), table2.values().size());
+
+        table2.remove("A");
+        assertNotEquals(table.values().size(), table2.values().size());
+
+        table.values().clear();
+        assertTrue(table.values().isEmpty());
     }
 
     @Test
     void entrySet() {
-    }
+        Map<String, Integer> table2 = new HashMap<>();
 
-    @Test
-    void testEquals() {
-    }
+        setTable(table);
+        setTable(table2);
 
-    @Test
-    void testHashCode() {
-    }
+        assertEquals(table.entrySet().size(), table2.entrySet().size());
 
-    @Test
-    void testToString() {
+        table2.remove("A");
+        assertNotEquals(table.values().size(), table2.values().size());
+
+        table.clear();
+        assertTrue(table.entrySet().isEmpty());
     }
 
     @Test
     void getOrDefault() {
+
+
     }
 
     @Test

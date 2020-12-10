@@ -121,7 +121,6 @@ class HashTableTest {
         assertThrows(NullPointerException.class, () ->
                 table.putAll(table2));
 
-
     }
 
     @Test
@@ -153,10 +152,18 @@ class HashTableTest {
         setTable(table);
         setTable(table2);
 
-        assertEquals(table.values().size(), table2.values().size());
+        List<Integer> tableToList = new ArrayList<>(table.values());
+        Collections.sort(tableToList);
+        List<Integer> tableToList2 = new ArrayList<>(table2.values());
+        Collections.sort(tableToList2);
 
-        table2.remove("A");
-        assertNotEquals(table.values().size(), table2.values().size());
+        assertEquals(tableToList, tableToList2);
+
+        table.remove("A");
+        tableToList = new ArrayList<>(table.values());
+        Collections.sort(tableToList);
+
+        assertNotEquals(tableToList, tableToList2);
 
         table.values().clear();
         assertTrue(table.values().isEmpty());
@@ -164,7 +171,7 @@ class HashTableTest {
 
     @Test
     void entrySet() {
-        Map<String, Integer> table2 = new HashMap<>();
+        Hashtable<String, Integer> table2 = new Hashtable<>();
 
         setTable(table);
         setTable(table2);
@@ -180,24 +187,90 @@ class HashTableTest {
 
     @Test
     void getOrDefault() {
+        setTable(table);
 
+        assertEquals(10, table.getOrDefault("A", 0));
+        assertEquals(0, table.getOrDefault("GG", 0));
 
+        assertThrows(NullPointerException.class, () ->
+                table.getOrDefault(null, 0));
     }
 
     @Test
     void forEach() {
+        setTable(table);
+
+        table.forEach((key, value) -> table.put(key, value * 2));
+
+        List<Integer> tableToList = new ArrayList<>(table.values());
+        Collections.sort(tableToList);
+
+        List<Integer> testList = new ArrayList<>();
+        testList.add(20);
+        testList.add(40);
+        testList.add(60);
+        testList.add(80);
+        testList.add(100);
+
+        assertEquals(tableToList, testList);
+
+        assertThrows(NullPointerException.class, () ->
+                table.forEach(null));
     }
 
     @Test
     void replaceAll() {
+        HashTable<Integer, Integer> table = new HashTable<>();
+
+        table.put(20, 7);
+        table.put(40, 8);
+        table.put(30, 9);
+
+        table.replaceAll(Integer::sum);
+
+        List<Integer> tableToList = new ArrayList<>(table.values());
+        Collections.sort(tableToList);
+
+        List<Integer> testList = new ArrayList<>();
+        testList.add(27);
+        testList.add(39);
+        testList.add(48);
+
+        assertEquals(tableToList, testList);
+
+        assertThrows(NullPointerException.class, () ->
+                table.forEach(null));
     }
 
     @Test
     void putIfAbsent() {
+        setTable(table);
+
+        table.putIfAbsent("G", 80);
+        assertTrue(table.containsKey("G"));
+        assertTrue(table.containsValue(80));
+
+        table.putIfAbsent("A", 100);
+        assertFalse(table.containsValue(100)); // key А уже был в таблице, поэтому value не поменялся
+
+        setTable(table);
+
+        assertNull(table.putIfAbsent("G", 80)); // If the key is not  associated with a value associates it
+                                                //  with the given value and returns null
+
+        assertEquals(10, table.putIfAbsent("A", 500)); // else returns the current value.
     }
 
     @Test
     void testRemove() {
+        setTable(table);
+
+        table.remove("A", 10);
+        assertFalse(table.containsKey("A"));
+        assertFalse(table.containsValue(10));
+
+        table.remove("B", 99);
+        assertTrue(table.containsKey("B"));
     }
 
     @Test

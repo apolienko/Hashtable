@@ -437,10 +437,13 @@ public class HashTable<K, V> implements Map<K, V> {
             V oldValue = table[index].getValue();
             V newValue = remappingFunction.apply(key, oldValue);
 
-            if (newValue != null)
-                return put(key, newValue);
-            else
-                return remove(key);
+            if (newValue != null) {
+                put(key, newValue);
+                return newValue;
+            } else {
+                remove(key);
+                return null;
+            }
         } else {
             V newValue = remappingFunction.apply(key, null);
             return put(key, newValue);
@@ -461,12 +464,13 @@ public class HashTable<K, V> implements Map<K, V> {
                 cell.setValue(newValue);
                 return newValue;
             } else {
-                return remove(key);
+                remove(key);
+                return null;
             }
         } else {
-            return put(key, value);
+            put(key, value);
+            return value;
         }
-
     }
 
     private int hash1(Object key) {
@@ -476,7 +480,7 @@ public class HashTable<K, V> implements Map<K, V> {
     private int hash2(Object key) {
         int hash = (key.hashCode() * HASH_CONST) % (capacity - 1);
         if (hash % 2 == 0) {
-            ++hash;
+            hash++;
         }
         return hash;
     }
@@ -502,6 +506,9 @@ public class HashTable<K, V> implements Map<K, V> {
         while (true) {
             n++;
             int index = (hash1(key) + n * hash2(key)) % (capacity - 3);
+            if (index < 0) {
+                index = index * -1;
+            }
             if (table[index] == null) {
                 return index;
             } else if (deletedCells[index]){
@@ -519,6 +526,9 @@ public class HashTable<K, V> implements Map<K, V> {
         while (n != capacity - 1) {
             n++;
             int index = (hash1 + n * hash2) % (capacity - 3);
+            if (index < 0) {
+                index = index * -1;
+            }
             Cell<K, V> cell = table[index];
             if (cell != null && cell.getKey().equals(key)) {
                 if (deletedCells[index]) {

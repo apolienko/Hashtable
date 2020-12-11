@@ -1,6 +1,7 @@
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -275,25 +276,104 @@ class HashTableTest {
 
     @Test
     void replace() {
+        setTable(table);
+
+        assertEquals(10, table.replace("A", 20));
+
+        assertNull(table.replace("GG", 100));
     }
 
     @Test
     void testReplace() {
+        setTable(table);
+
+        assertTrue(table.replace("A", 10, 20));
+        assertTrue(table.replace("A", 20, 30));
+
+        assertFalse(table.replace("A", 99, 30));
+
+        assertFalse(table.replace("GG", 99, 30));
     }
 
     @Test
     void computeIfAbsent() {
+        setTable(table);
+
+        Function<String, Integer> convert = x -> (int) x.toCharArray()[0];
+
+        assertEquals(10, table.computeIfAbsent("A", convert));
+
+        assertEquals(71, table.computeIfAbsent("GG", convert));
+        assertTrue(table.containsKey("GG"));
+        assertTrue(table.containsValue(71));
+
+        assertThrows(NullPointerException.class, () ->
+                table.computeIfAbsent("A", null));
     }
 
     @Test
     void computeIfPresent() {
+        HashTable<Integer, Integer> table = new HashTable<>();
+        table.put(1, 50);
+        table.put(2, 500);
+
+        Integer newValue = table.computeIfPresent(1,
+                (key, val) -> val + 100);
+
+        assertEquals(150, newValue);
+
+        newValue = table.computeIfPresent(3,
+                (key, val) -> val + 100);
+
+        assertNull(newValue);
+
+        assertThrows(NullPointerException.class, () ->
+                table.computeIfAbsent(1, null));
     }
 
     @Test
     void compute() {
+        HashTable<String, String> table = new HashTable<>();
+        table.put("Maxim", "Petrov");
+        table.put("Vlad", "1");
+
+        assertEquals("Petrov is here",
+                table.compute("Maxim", (key, val)
+                -> val + " is here"));
+
+        assertTrue(table.containsValue("Petrov is here"));
+
+        assertNull(table.compute("Maxim", (key, val)
+                -> null));
+
+        assertFalse(table.containsKey("Maxim"));
+
+        assertThrows(NullPointerException.class, () ->
+                table.computeIfAbsent("Maxim", null));
     }
 
     @Test
     void merge() {
+        HashTable<String, String> table = new HashTable<>();
+        table.put("Maxim", "Petrov");
+        table.put("Vlad", "1");
+
+        assertEquals("Petrov is here",
+                table.merge("Maxim", "Petrov", (key, val)
+                        -> val + " is here"));
+
+        assertEquals(table.get("Maxim"), "Petrov is here");
+
+        assertNull(table.merge("Vlad",
+                "1", (key, val) -> null));
+
+        assertFalse(table.containsKey("Vlad"));
+
+        assertEquals("123",
+                table.merge("Petro", "123", (key, val)
+                        -> val + " is here"));
+
+        assertThrows(NullPointerException.class, () ->
+                table.computeIfAbsent("Maxim", null));
     }
 }
